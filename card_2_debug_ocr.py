@@ -46,6 +46,7 @@ def main():
 
     last_hand = []
     last_cleaned = []  # last OCR'd hand
+    last_seen_valid_hand = []
     hand_confirm_count = 0
     running_count = 0
     hand_was_cleared = False
@@ -91,6 +92,9 @@ def main():
             cards = [c1, c2, third_card, c4]
             hand = [c for c in cards if c]
 
+            if len(hand) >= 2:
+                last_seen_valid_hand = hand.copy()
+
             # === Fallback Blackjack detection using on-screen counter
             if bj_counter == "21" and len(hand) == 1:
                 hand = ['A', '10']
@@ -111,22 +115,24 @@ def main():
                 if last_hand and hand_cleared_timer is None:
                     hand_cleared_timer = time.time()
                 elif hand_cleared_timer and time.time() - hand_cleared_timer >= CLEAR_DELAY:
-                    # Print summary from last_hand
-                    delta = sum(get_card_value(c) for c in last_hand)
-                    print(f"🧾 Last Hand: {last_hand} → Count: {delta:+}")
+                    hand_to_count = last_hand if last_hand else last_seen_valid_hand
+                    if hand_to_count:
+                        delta = sum(get_card_value(c) for c in hand_to_count)
+                        print(f"🧾 Last Hand: {hand_to_count} → Count: {delta:+}")
 
-                    running_count += delta
-                    corrected_count = running_count
-                    if 22 <= corrected_count <= 26:
-                        running_count -= delta
-                        phantom_card_value = corrected_count - delta
-                        running_count += phantom_card_value
-                        phantom_hand = [f"Phantom +{phantom_card_value}"]
-                        print(f"⚠️ Count spike detected ({corrected_count}). Replacing last hand (+{delta}) with Phantom +{phantom_card_value}")
+                        running_count += delta
+                        corrected_count = running_count
+                        if 22 <= corrected_count <= 26:
+                            running_count -= delta
+                            phantom_card_value = corrected_count - delta
+                            running_count += phantom_card_value
+                            phantom_hand = [f"Phantom +{phantom_card_value}"]
+                            print(f"⚠️ Count spike detected ({corrected_count}). Replacing last hand (+{delta}) with Phantom +{phantom_card_value}")
 
                     print("🧼 Hand cleared after 5s blank.")
                     last_hand = []
                     last_cleaned = []
+                    last_seen_valid_hand = []
                     hand_confirm_count = 0
                     hand_was_cleared = True
                     hand_cleared_timer = None
