@@ -12,6 +12,7 @@ card_1_region = (1825, 940, 1872, 985)
 card_2_region = (1867, 946, 1907, 976)
 card_3_region = (1908, 946, 1933, 976)
 card_4_region = (1950, 946, 1973, 976)
+double_card_region = (1948, 985, 1983, 1013)
 bj_counter_region = (1975, 875, 2016, 905)
 
 def grab_gray(region):
@@ -71,15 +72,23 @@ def main():
             raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
             raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
             raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
+            # === Double-Down Card Support ===
+            double_gray = grab_gray(double_card_region)
+            rotated = cv2.rotate(double_gray, cv2.ROTATE_90_CLOCKWISE)
+            raw_double = pytesseract.image_to_string(rotated, config='--psm 6')
             bj_raw = pytesseract.image_to_string(bj_thresh, config='--psm 6')
 
             c1 = extract_card(clean_text(raw1))
             c2 = extract_card(clean_text(raw2))
             c3 = extract_card(clean_text(raw3))
             c4 = extract_card(clean_text(raw4))
+            double_card = extract_card(clean_text(raw_double))
             bj_counter = clean_digits(bj_raw)
 
-            hand = [c for c in [c1, c2, c3, c4] if c]
+            cards = [c1, c2, c3, c4]
+            if double_card:
+                cards.insert(2, double_card)
+            hand = [c for c in cards if c]
 
             # === Fallback Blackjack detection using on-screen counter
             if bj_counter == "21" and len(hand) == 1:
