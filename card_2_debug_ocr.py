@@ -42,9 +42,12 @@ def main():
     hand_was_cleared = False
     hand_cleared_timer = None
     CLEAR_DELAY = 5.0  # seconds before confirmed clear
+    a_visible_since = None
+    last_a_hand = None
 
     try:
         while True:
+            now = time.time()
             gray1 = grab_gray(card_1_region)
             gray2 = grab_gray(card_2_region)
 
@@ -78,9 +81,23 @@ def main():
                     last_cleaned = []
                     hand_was_cleared = True
                     hand_cleared_timer = None
+                a_visible_since = None
+                last_a_hand = None
                 continue
             else:
                 hand_cleared_timer = None
+
+            # === Track visibility for hands containing 'A'
+            if 'A' in hand:
+                if last_a_hand == hand:
+                    if a_visible_since is None:
+                        a_visible_since = now
+                else:
+                    last_a_hand = hand.copy()
+                    a_visible_since = now
+            else:
+                last_a_hand = None
+                a_visible_since = None
 
             # === Redundancy checks
             if hand == last_hand:
@@ -88,11 +105,18 @@ def main():
             if hand == last_cleaned and not hand_was_cleared:
                 continue
 
-            # === Valid hand update
-            print(f"🂠 Card 1: {c1}, Card 2: {c2} → ✅ Hand: {hand}")
-            last_cleaned = hand.copy()
-            last_hand = hand.copy()
-            hand_was_cleared = False
+            # === Valid hand update with optional delay for 'A'
+            should_print = True
+            if 'A' in hand:
+                if last_a_hand == hand and a_visible_since and now - a_visible_since >= 1:
+                    should_print = True
+                else:
+                    should_print = False
+            if should_print:
+                print(f"🂠 Card 1: {c1}, Card 2: {c2} → ✅ Hand: {hand}")
+                last_cleaned = hand.copy()
+                last_hand = hand.copy()
+                hand_was_cleared = False
 
             time.sleep(0.5)
 
