@@ -146,11 +146,25 @@ def main():
                         hand_total = sum(get_card_total_value(c) for c in hand_to_count)
 
                         if bj_total is not None and 22 <= bj_total <= 26 and bj_total - hand_total >= 2:
+                            # Remove the previously added raw hand delta before applying phantom card logic
                             running_count -= delta
                             phantom_card_value = bj_total - hand_total
-                            running_count += phantom_card_value
+
+                            # Map the difference to a likely card rank
+                            if phantom_card_value == 10:
+                                phantom_card = '10'
+                            elif phantom_card_value == 11:
+                                phantom_card = 'A'
+                            elif 2 <= phantom_card_value <= 6:
+                                phantom_card = str(phantom_card_value)
+                            else:
+                                phantom_card = '10'
+
+                            phantom_hi_lo_value = get_card_value(phantom_card)
+
+                            running_count += phantom_hi_lo_value
                             print(
-                                f"⚠️ Bust mismatch detected: Hand value = {hand_total}, Counter = {bj_total} → Phantom +{phantom_card_value} inserted"
+                                f"⚠️ Bust mismatch detected: Hand value = {hand_total}, Counter = {bj_total} → Phantom {phantom_card} added (Hi-Lo: {phantom_hi_lo_value:+})"
                             )
 
                     print("🧼 Hand cleared after 5s blank.")
