@@ -60,10 +60,10 @@ def main():
             hand = [c for c in [c1, c2] if c]
 
             # === Discard incomplete reads
-            if len(hand) < 2:
+            if len(hand) == 1:
                 # Optional debug output for skipped hands
                 # print(f"Skipping 1-card hand: {hand}")
-                continue
+                continue  # skip phantom or incomplete hand
 
             # === Handle delayed hand clear
             if not hand:
