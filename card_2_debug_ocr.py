@@ -41,6 +41,18 @@ def get_card_value(card):
         return -1
     return 0
 
+def get_card_total_value(card):
+    """Return blackjack point value for a single card."""
+    if card == 'A':
+        return 11
+    elif card in ['K', 'Q', 'J', '10']:
+        return 10
+    else:
+        try:
+            return int(card)
+        except ValueError:
+            return 0
+
 def main():
     print("🔍 Card OCR with Round Summary... Press CTRL+C to stop.")
 
@@ -122,13 +134,24 @@ def main():
                         print(f"🧾 Last Hand: {hand_to_count} → Count: {delta:+}")
 
                         running_count += delta
-                        corrected_count = running_count
-                        if 22 <= corrected_count <= 26:
+
+                        bj_img = grab_gray(bj_counter_region)
+                        bj_raw = pytesseract.image_to_string(bj_img, config='--psm 6')
+                        bj_counter = re.sub(r"\D", "", bj_raw).strip()
+                        try:
+                            bj_total = int(bj_counter)
+                        except ValueError:
+                            bj_total = None
+
+                        hand_total = sum(get_card_total_value(c) for c in hand_to_count)
+
+                        if bj_total is not None and 22 <= bj_total <= 26 and bj_total - hand_total >= 2:
                             running_count -= delta
-                            phantom_card_value = corrected_count - delta
+                            phantom_card_value = bj_total - hand_total
                             running_count += phantom_card_value
-                            phantom_hand = [f"Phantom +{phantom_card_value}"]
-                            print(f"⚠️ Count spike detected ({corrected_count}). Replacing last hand (+{delta}) with Phantom +{phantom_card_value}")
+                            print(
+                                f"⚠️ Bust mismatch detected: Hand value = {hand_total}, Counter = {bj_total} → Phantom +{phantom_card_value} inserted"
+                            )
 
                     print("🧼 Hand cleared after 5s blank.")
                     last_hand = []
