@@ -38,7 +38,8 @@ def main():
     print("🔍 Card OCR with Round Summary... Press CTRL+C to stop.")
 
     last_hand = []
-    last_cleaned = []
+    last_cleaned = []  # last OCR'd hand
+    hand_confirm_count = 0
     hand_was_cleared = False
     hand_cleared_timer = None
     CLEAR_DELAY = 5.0  # seconds before confirmed clear
@@ -70,6 +71,8 @@ def main():
 
             # === Handle delayed hand clear
             if not hand:
+                hand_confirm_count = 0
+                last_cleaned = []
                 if last_hand and hand_cleared_timer is None:
                     hand_cleared_timer = time.time()
                 elif hand_cleared_timer and time.time() - hand_cleared_timer >= CLEAR_DELAY:
@@ -79,6 +82,7 @@ def main():
                     print("🧼 Hand cleared after 5s blank.")
                     last_hand = []
                     last_cleaned = []
+                    hand_confirm_count = 0
                     hand_was_cleared = True
                     hand_cleared_timer = None
                 a_visible_since = None
@@ -99,10 +103,18 @@ def main():
                 last_a_hand = None
                 a_visible_since = None
 
-            # === Redundancy checks
-            if hand == last_hand:
+            # === Stability check before printing
+            if hand == last_cleaned:
+                hand_confirm_count += 1
+            else:
+                hand_confirm_count = 1
+                last_cleaned = hand.copy()
+
+            if hand_confirm_count < 2:
                 continue
-            if hand == last_cleaned and not hand_was_cleared:
+
+            # Avoid duplicate prints
+            if hand == last_hand:
                 continue
 
             # === Valid hand update with optional delay for 'A'
@@ -114,7 +126,6 @@ def main():
                     should_print = False
             if should_print:
                 print(f"🂠 Card 1: {c1}, Card 2: {c2} → ✅ Hand: {hand}")
-                last_cleaned = hand.copy()
                 last_hand = hand.copy()
                 hand_was_cleared = False
 
