@@ -80,14 +80,14 @@ def main():
 
             c1 = extract_card(clean_text(raw1))
             c2 = extract_card(clean_text(raw2))
-            c3 = extract_card(clean_text(raw3))
+            regular_c3 = extract_card(clean_text(raw3))
             c4 = extract_card(clean_text(raw4))
             double_card = extract_card(clean_text(raw_double))
             bj_counter = clean_digits(bj_raw)
 
-            cards = [c1, c2, c3, c4]
-            if double_card:
-                cards.insert(2, double_card)
+            third_card = double_card if double_card else regular_c3
+
+            cards = [c1, c2, third_card, c4]
             hand = [c for c in cards if c]
 
             # === Fallback Blackjack detection using on-screen counter
@@ -159,7 +159,7 @@ def main():
                 else:
                     should_print = False
             if should_print:
-                print(f"🂠 Card 1: {c1}, Card 2: {c2}, Card 3: {c3}, Card 4: {c4} → ✅ Hand: {hand}")
+                print(f"🂠 Card 1: {c1}, Card 2: {c2}, Card 3: {third_card}, Card 4: {c4} → ✅ Hand: {hand}")
                 last_hand = hand.copy()
                 hand_was_cleared = False
 
