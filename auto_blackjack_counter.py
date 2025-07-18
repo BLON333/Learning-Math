@@ -99,7 +99,7 @@ def main():
                 text = pytesseract.image_to_string(gray, config='--psm 6')
                 cleaned = clean_text(text)
                 cards = extract_cards(cleaned)
-                if not cards:
+                if len(cards) < 2:
                     continue
 
                 # === Require 2x match to confirm
@@ -113,10 +113,6 @@ def main():
                     continue
 
                 prev_cards = last_cards[label]
-
-                # === Suppression rules for lone A/10/7 in player zones
-                if label != "Dealer Hand" and len(cards) == 1 and cards[0] in ['A', '10', '7']:
-                    continue
 
                 if cards == prev_cards:
                     continue
