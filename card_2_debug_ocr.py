@@ -82,11 +82,11 @@ def main():
             hand = [c for c in [c1, c2, c3, c4] if c]
 
             # === Fallback Blackjack detection using on-screen counter
-            if bj_counter == "21" and (
-                (c1 == 'A' and not c2) or (c2 == 'A' and not c1)
-            ):
+            if bj_counter == "21" and len(hand) == 1:
                 hand = ['A', '10']
                 print("♠ Blackjack inferred from counter → Hand: ['A', '10']")
+                last_cleaned = hand.copy()
+                hand_confirm_count = 2  # force it to pass confirmation filter
 
             # === Discard incomplete reads
             if len(hand) == 1:
