@@ -59,8 +59,10 @@ def main():
 
             hand = [c for c in [c1, c2] if c]
 
-            # === Phantom suppression
-            if len(hand) == 1 and hand[0] in ['A', '10', '7']:
+            # === Discard incomplete reads
+            if len(hand) < 2:
+                # Optional debug output for skipped hands
+                # print(f"Skipping 1-card hand: {hand}")
                 continue
 
             # === Handle delayed hand clear
