@@ -12,6 +12,7 @@ card_1_region = (1825, 940, 1872, 985)
 card_2_region = (1867, 946, 1907, 976)
 card_3_region = (1908, 946, 1933, 976)
 card_4_region = (1950, 946, 1973, 976)
+bj_counter_region = (1975, 875, 2016, 905)
 
 def grab_gray(region):
     img = np.array(ImageGrab.grab(bbox=region))
@@ -19,6 +20,9 @@ def grab_gray(region):
 
 def clean_text(text):
     return re.sub(r"[^A-Z0-9]", "", text.upper()).strip()
+
+def clean_digits(text):
+    return re.sub(r"\D", "", text)
 
 def extract_card(text):
     text = text.replace("10", "T")
@@ -55,23 +59,34 @@ def main():
             gray2 = grab_gray(card_2_region)
             gray3 = grab_gray(card_3_region)
             gray4 = grab_gray(card_4_region)
+            bj_gray = grab_gray(bj_counter_region)
 
             _, thresh1 = cv2.threshold(gray1, 160, 255, cv2.THRESH_BINARY)
             _, thresh2 = cv2.threshold(gray2, 160, 255, cv2.THRESH_BINARY)
             _, thresh3 = cv2.threshold(gray3, 160, 255, cv2.THRESH_BINARY)
             _, thresh4 = cv2.threshold(gray4, 160, 255, cv2.THRESH_BINARY)
+            _, bj_thresh = cv2.threshold(bj_gray, 160, 255, cv2.THRESH_BINARY)
 
             raw1 = pytesseract.image_to_string(thresh1, config='--psm 6')
             raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
             raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
             raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
+            bj_raw = pytesseract.image_to_string(bj_thresh, config='--psm 6')
 
             c1 = extract_card(clean_text(raw1))
             c2 = extract_card(clean_text(raw2))
             c3 = extract_card(clean_text(raw3))
             c4 = extract_card(clean_text(raw4))
+            bj_counter = clean_digits(bj_raw)
 
             hand = [c for c in [c1, c2, c3, c4] if c]
+
+            # === Fallback Blackjack detection using on-screen counter
+            if bj_counter == "21" and (
+                (c1 == 'A' and not c2) or (c2 == 'A' and not c1)
+            ):
+                hand = ['A', '10']
+                print("♠ Blackjack inferred from counter → Hand: ['A', '10']")
 
             # === Discard incomplete reads
             if len(hand) == 1:
