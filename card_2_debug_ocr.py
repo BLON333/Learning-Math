@@ -15,6 +15,9 @@ card_4_region = (1950, 946, 1973, 976)
 double_card_region = (1948, 985, 1983, 1013)
 bj_counter_region = (1975, 875, 2016, 905)
 
+# Persist last good blackjack counter total
+last_bj_total = None
+
 def grab_gray(region):
     img = np.array(ImageGrab.grab(bbox=region))
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -55,7 +58,7 @@ def get_card_total_value(card):
 
 def main():
     print("🔍 Card OCR with Round Summary... Press CTRL+C to stop.")
-
+    global last_bj_total
     last_hand = []
     last_cleaned = []  # last OCR'd hand
     last_seen_valid_hand = []
@@ -137,11 +140,16 @@ def main():
 
                         bj_img = grab_gray(bj_counter_region)
                         bj_raw = pytesseract.image_to_string(bj_img, config='--psm 6')
-                        bj_counter = re.sub(r"\D", "", bj_raw).strip()
+                        bj_counter = re.sub(r"[^0-9]", "", bj_raw).strip()
+
                         try:
                             bj_total = int(bj_counter)
+                            last_bj_total = bj_total  # persist good value
                         except ValueError:
                             bj_total = None
+
+                        if bj_total is None and last_bj_total and 22 <= last_bj_total <= 26:
+                            bj_total = last_bj_total
 
                         hand_total = sum(get_card_total_value(c) for c in hand_to_count)
 
@@ -166,6 +174,11 @@ def main():
                             print(
                                 f"⚠️ Bust mismatch detected: Hand value = {hand_total}, Counter = {bj_total} → Phantom {phantom_card} added (Hi-Lo: {phantom_hi_lo_value:+})"
                             )
+
+                        last_bj_total = None
+                        print(
+                            f"🧪 bj_total: {bj_total}, hand_total: {hand_total}, delta: {bj_total - hand_total if bj_total else 'N/A'}"
+                        )
 
                     print("🧼 Hand cleared after 5s blank.")
                     last_hand = []
