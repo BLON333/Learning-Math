@@ -11,6 +11,7 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 card_1_region = (1825, 940, 1872, 985)
 card_2_region = (1867, 946, 1907, 976)
 card_3_region = (1908, 946, 1933, 976)
+card_4_region = (1950, 946, 1973, 976)
 
 def grab_gray(region):
     img = np.array(ImageGrab.grab(bbox=region))
@@ -53,20 +54,24 @@ def main():
             gray1 = grab_gray(card_1_region)
             gray2 = grab_gray(card_2_region)
             gray3 = grab_gray(card_3_region)
+            gray4 = grab_gray(card_4_region)
 
             _, thresh1 = cv2.threshold(gray1, 160, 255, cv2.THRESH_BINARY)
             _, thresh2 = cv2.threshold(gray2, 160, 255, cv2.THRESH_BINARY)
             _, thresh3 = cv2.threshold(gray3, 160, 255, cv2.THRESH_BINARY)
+            _, thresh4 = cv2.threshold(gray4, 160, 255, cv2.THRESH_BINARY)
 
             raw1 = pytesseract.image_to_string(thresh1, config='--psm 6')
             raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
             raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
+            raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
 
             c1 = extract_card(clean_text(raw1))
             c2 = extract_card(clean_text(raw2))
             c3 = extract_card(clean_text(raw3))
+            c4 = extract_card(clean_text(raw4))
 
-            hand = [c for c in [c1, c2, c3] if c]
+            hand = [c for c in [c1, c2, c3, c4] if c]
 
             # === Discard incomplete reads
             if len(hand) == 1:
@@ -130,7 +135,7 @@ def main():
                 else:
                     should_print = False
             if should_print:
-                print(f"🂠 Card 1: {c1}, Card 2: {c2}, Card 3: {c3} → ✅ Hand: {hand}")
+                print(f"🂠 Card 1: {c1}, Card 2: {c2}, Card 3: {c3}, Card 4: {c4} → ✅ Hand: {hand}")
                 last_hand = hand.copy()
                 hand_was_cleared = False
 
