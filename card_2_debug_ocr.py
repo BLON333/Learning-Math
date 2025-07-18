@@ -99,8 +99,9 @@ def main():
             if bj_counter == "21" and len(hand) == 1:
                 hand = ['A', '10']
                 print("♠ Blackjack inferred from counter → Hand: ['A', '10']")
+                last_hand = hand.copy()
                 last_cleaned = hand.copy()
-                hand_confirm_count = 2  # force it to pass confirmation filter
+                hand_confirm_count = 2  # force confirmation bypass
 
             # === Discard incomplete reads
             if len(hand) == 1:
