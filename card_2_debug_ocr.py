@@ -47,6 +47,7 @@ def main():
     last_hand = []
     last_cleaned = []  # last OCR'd hand
     hand_confirm_count = 0
+    running_count = 0
     hand_was_cleared = False
     hand_cleared_timer = None
     CLEAR_DELAY = 5.0  # seconds before confirmed clear
@@ -113,6 +114,16 @@ def main():
                     # Print summary from last_hand
                     delta = sum(get_card_value(c) for c in last_hand)
                     print(f"🧾 Last Hand: {last_hand} → Count: {delta:+}")
+
+                    running_count += delta
+                    corrected_count = running_count
+                    if 22 <= corrected_count <= 26:
+                        running_count -= delta
+                        phantom_card_value = corrected_count - delta
+                        running_count += phantom_card_value
+                        phantom_hand = [f"Phantom +{phantom_card_value}"]
+                        print(f"⚠️ Count spike detected ({corrected_count}). Replacing last hand (+{delta}) with Phantom +{phantom_card_value}")
+
                     print("🧼 Hand cleared after 5s blank.")
                     last_hand = []
                     last_cleaned = []
