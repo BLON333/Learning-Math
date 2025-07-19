@@ -159,10 +159,11 @@ def main():
                         except ValueError:
                             bj_total = None
 
+                        hand_total = get_hand_total(hand_to_count)
+
                         if bj_total is None and last_bj_total and 22 <= last_bj_total <= 26:
                             bj_total = last_bj_total
-
-                        hand_total = get_hand_total(hand_to_count)
+                            print(f"♻️ Reusing last bj_total = {bj_total} due to OCR failure")
 
                         if bj_total is not None and 22 <= bj_total <= 26 and bj_total - hand_total >= 2:
                             # Remove the previously added raw hand delta before applying phantom card logic
