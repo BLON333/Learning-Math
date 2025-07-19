@@ -4,6 +4,7 @@ import numpy as np
 import mss
 import time
 import re
+from collections import deque
 
 sct = mss.mss()
 
@@ -125,6 +126,15 @@ def main():
         "bj_counter": None,
     }
 
+    roi_buffers = {
+        "card_1": deque(maxlen=10),
+        "card_2": deque(maxlen=10),
+        "card_3": deque(maxlen=10),
+        "card_4": deque(maxlen=10),
+        "card_5": deque(maxlen=10),
+        "bj_counter": deque(maxlen=10),
+    }
+
     try:
         while True:
             now = time.time()
@@ -133,11 +143,17 @@ def main():
                 burst_mode_active = False
                 print("🧯 Exiting burst OCR mode")
             gray1 = grab_gray(card_1_region)
+            roi_buffers["card_1"].append(gray1)
             gray2 = grab_gray(card_2_region)
+            roi_buffers["card_2"].append(gray2)
             gray3 = grab_gray(card_3_region)
+            roi_buffers["card_3"].append(gray3)
             gray4 = grab_gray(card_4_region)
+            roi_buffers["card_4"].append(gray4)
             gray5 = grab_gray(card_5_region)
+            roi_buffers["card_5"].append(gray5)
             bj_gray = grab_gray(bj_counter_region)
+            roi_buffers["bj_counter"].append(bj_gray)
 
             if prev_card_regions["card_1"] is None or has_changed(prev_card_regions["card_1"], gray1):
                 print("🔄 Change detected in card_1 → triggering OCR")
@@ -260,8 +276,22 @@ def main():
 
                         # ✅ Bust inference when bj_total is unreadable
                         if bj_total is None and hand_total >= 22:
-                            print(f"🛡️ Inferring bust due to hand_total = {hand_total} (bj_total OCR failed)")
-                            bj_total = hand_total  # force phantom correction path
+                            print("🔁 bj_total is None — scanning snapshot buffer for possible counter")
+                            for buffered_img in reversed(roi_buffers["bj_counter"]):
+                                raw = pytesseract.image_to_string(buffered_img, config='--psm 6')
+                                cleaned = re.sub(r"[^0-9]", "", raw)
+                                try:
+                                    parsed = int(cleaned)
+                                    if 22 <= parsed <= 26:
+                                        bj_total = parsed
+                                        print(f"📦 Snapshot OCR recovered bj_total = {bj_total}")
+                                        break
+                                except ValueError:
+                                    continue
+
+                            if bj_total is None:
+                                print(f"🛡️ Inferring bust due to hand_total = {hand_total} (bj_total OCR failed)")
+                                bj_total = hand_total  # force phantom correction path
 
                         if bj_total is None and last_bj_total and 22 <= last_bj_total <= 26:
                             bj_total = last_bj_total
