@@ -1,9 +1,11 @@
 import pytesseract
 import cv2
 import numpy as np
-from PIL import ImageGrab
+import mss
 import time
 import re
+
+sct = mss.mss()
 
 # Set your Tesseract install path
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -14,7 +16,13 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 card_1_region = (1829, 946, 1870, 986)
 
 def grab_gray(region):
-    img = np.array(ImageGrab.grab(bbox=region))
+    monitor = {
+        "top": region[1],
+        "left": region[0],
+        "width": region[2] - region[0],
+        "height": region[3] - region[1],
+    }
+    img = np.array(sct.grab(monitor))[:, :, :3]
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 def clean_text(text):

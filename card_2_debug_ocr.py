@@ -1,9 +1,11 @@
 import pytesseract
 import cv2
 import numpy as np
-from PIL import ImageGrab
+import mss
 import time
 import re
+
+sct = mss.mss()
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -20,7 +22,13 @@ bj_counter_region = (1975, 875, 2016, 905)
 last_bj_total = None
 
 def grab_gray(region):
-    img = np.array(ImageGrab.grab(bbox=region))
+    monitor = {
+        "top": region[1],
+        "left": region[0],
+        "width": region[2] - region[0],
+        "height": region[3] - region[1],
+    }
+    img = np.array(sct.grab(monitor))[:, :, :3]
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 def clean_text(text):
