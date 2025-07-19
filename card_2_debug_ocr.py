@@ -111,6 +111,11 @@ def main():
     CLEAR_DELAY = 5.0  # seconds before confirmed clear
     a_visible_since = None
     last_a_hand = None
+
+    # === Burst OCR Mode Settings ===
+    burst_mode_active = False
+    burst_mode_start = None
+    BURST_DURATION = 2.0  # seconds
     prev_card_regions = {
         "card_1": None,
         "card_2": None,
@@ -123,6 +128,10 @@ def main():
     try:
         while True:
             now = time.time()
+
+            if burst_mode_active and (time.time() - burst_mode_start > BURST_DURATION):
+                burst_mode_active = False
+                print("🧯 Exiting burst OCR mode")
             gray1 = grab_gray(card_1_region)
             gray2 = grab_gray(card_2_region)
             gray3 = grab_gray(card_3_region)
@@ -194,6 +203,11 @@ def main():
 
             cards = [c1, c2, third_card, c4, c5]
             hand = [c for c in cards if c]
+
+            if len(hand) == 3 and not burst_mode_active:
+                burst_mode_active = True
+                burst_mode_start = time.time()
+                print("🚀 Entering burst OCR mode after 3rd card")
 
             if len(hand) >= 2:
                 last_seen_valid_hand = hand.copy()
@@ -333,7 +347,7 @@ def main():
                 last_hand = hand.copy()
                 hand_was_cleared = False
 
-            time.sleep(0.5)
+            time.sleep(0.05 if burst_mode_active else 0.5)
 
     except KeyboardInterrupt:
         print("\n🛑 Test ended.")
