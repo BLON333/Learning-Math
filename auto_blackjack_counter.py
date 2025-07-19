@@ -1,10 +1,12 @@
 import pytesseract
 import cv2
 import numpy as np
-from PIL import ImageGrab
+import mss
 import hashlib
 import time
 import re
+
+sct = mss.mss()
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -41,7 +43,13 @@ def region_hash(image):
     return hashlib.md5(image.tobytes()).hexdigest()
 
 def grab_region(region):
-    img = np.array(ImageGrab.grab(bbox=region))
+    monitor = {
+        "top": region[1],
+        "left": region[0],
+        "width": region[2] - region[0],
+        "height": region[3] - region[1],
+    }
+    img = np.array(sct.grab(monitor))[:, :, :3]
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return gray
 
