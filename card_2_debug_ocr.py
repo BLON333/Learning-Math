@@ -4,6 +4,7 @@ import numpy as np
 import mss
 import time
 import re
+import os
 from collections import deque
 
 sct = mss.mss()
@@ -22,6 +23,21 @@ bj_counter_region = (1975, 875, 2016, 905)
 # Persist last good blackjack counter total
 last_bj_total = None
 
+# === TEMPLATE LOADING ===
+template_dir = os.path.join(os.path.dirname(__file__), "templates")
+card_templates = {
+    "A": cv2.imread(os.path.join(template_dir, "A.png"), 0),
+    "10": cv2.imread(os.path.join(template_dir, "10.png"), 0),
+    "J": cv2.imread(os.path.join(template_dir, "J.png"), 0),
+    "Q": cv2.imread(os.path.join(template_dir, "Q.png"), 0),
+    "K": cv2.imread(os.path.join(template_dir, "K.png"), 0),
+}
+digit_templates = {
+    str(i): cv2.imread(os.path.join(template_dir, "digits", f"{i}.png"), 0)
+    for i in range(10)
+}
+
+
 def grab_gray(region):
     monitor = {
         "top": region[1],
@@ -37,6 +53,17 @@ def clean_text(text):
 
 def clean_digits(text):
     return re.sub(r"\D", "", text)
+
+def match_template(gray_img, templates, threshold=0.8):
+    """Return the label of the first template that exceeds the threshold."""
+    for label, tmpl in templates.items():
+        if tmpl is None:
+            continue
+        res = cv2.matchTemplate(gray_img, tmpl, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(res)
+        if max_val >= threshold:
+            return label
+    return None
 
 def has_changed(prev_img, curr_img, threshold=25, min_change_pixels=50):
     """Return True if the difference between images exceeds the threshold."""
@@ -160,6 +187,11 @@ def main():
                 _, thresh1 = cv2.threshold(gray1, 160, 255, cv2.THRESH_BINARY)
                 raw1 = pytesseract.image_to_string(thresh1, config='--psm 6')
                 c1 = extract_card(clean_text(raw1))
+                if not c1:
+                    match = match_template(gray1, card_templates)
+                    if match:
+                        c1 = match
+                        print(f"🔁 Template matched card_1: {c1}")
                 prev_card_regions["card_1"] = gray1
             else:
                 c1 = ""
@@ -169,6 +201,11 @@ def main():
                 _, thresh2 = cv2.threshold(gray2, 160, 255, cv2.THRESH_BINARY)
                 raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
                 c2 = extract_card(clean_text(raw2))
+                if not c2:
+                    match = match_template(gray2, card_templates)
+                    if match:
+                        c2 = match
+                        print(f"🔁 Template matched card_2: {c2}")
                 prev_card_regions["card_2"] = gray2
             else:
                 c2 = ""
@@ -178,6 +215,11 @@ def main():
                 _, thresh3 = cv2.threshold(gray3, 160, 255, cv2.THRESH_BINARY)
                 raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
                 regular_c3 = extract_card(clean_text(raw3))
+                if not regular_c3:
+                    match = match_template(gray3, card_templates)
+                    if match:
+                        regular_c3 = match
+                        print(f"🔁 Template matched card_3: {regular_c3}")
                 prev_card_regions["card_3"] = gray3
             else:
                 regular_c3 = ""
@@ -187,6 +229,11 @@ def main():
                 _, thresh4 = cv2.threshold(gray4, 160, 255, cv2.THRESH_BINARY)
                 raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
                 c4 = extract_card(clean_text(raw4))
+                if not c4:
+                    match = match_template(gray4, card_templates)
+                    if match:
+                        c4 = match
+                        print(f"🔁 Template matched card_4: {c4}")
                 prev_card_regions["card_4"] = gray4
             else:
                 c4 = ""
@@ -196,6 +243,11 @@ def main():
                 _, thresh5 = cv2.threshold(gray5, 160, 255, cv2.THRESH_BINARY)
                 raw5 = pytesseract.image_to_string(thresh5, config='--psm 6')
                 c5 = extract_card(clean_text(raw5))
+                if not c5:
+                    match = match_template(gray5, card_templates)
+                    if match:
+                        c5 = match
+                        print(f"🔁 Template matched card_5: {c5}")
                 prev_card_regions["card_5"] = gray5
             else:
                 c5 = ""
@@ -205,6 +257,11 @@ def main():
                 _, bj_thresh = cv2.threshold(bj_gray, 160, 255, cv2.THRESH_BINARY)
                 bj_raw = pytesseract.image_to_string(bj_thresh, config='--psm 6')
                 bj_counter = clean_digits(bj_raw)
+                if not bj_counter or len(bj_counter) < 2:
+                    matched = match_template(bj_gray, digit_templates)
+                    if matched:
+                        bj_counter = matched
+                        print(f"🔁 Template matched bj_total: {bj_counter}")
                 prev_card_regions["bj_counter"] = bj_gray
             else:
                 bj_counter = ""
