@@ -154,8 +154,13 @@ def main():
                         bj_counter = re.sub(r"[^0-9]", "", bj_raw).strip()
 
                         try:
-                            bj_total = int(bj_counter)
-                            last_bj_total = bj_total  # persist good value
+                            parsed = int(bj_counter)
+                            if 12 <= parsed <= 26:
+                                bj_total = parsed
+                                last_bj_total = bj_total  # persist good value
+                            else:
+                                print(f"🚫 Discarding invalid bj_total: {parsed}")
+                                bj_total = None
                         except ValueError:
                             bj_total = None
 
