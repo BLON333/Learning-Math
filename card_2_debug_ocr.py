@@ -31,7 +31,7 @@ def clean_digits(text):
 def extract_card(text):
     text = text.strip().upper()
 
-    # Normalize common OCR mistakes
+    # Normalize common OCR misreads
     if text in ["0", "O", "T"]:
         return "10"
     if text in ["1", "I", "L"]:
@@ -41,10 +41,9 @@ def extract_card(text):
     if text == "S":
         return "5"
 
-    # If A was returned but it resembles a known misread
+    # Preserve 'A' — do not downgrade to '4' here
     if text == "A":
-        # Reject if it's too short, looks handwritten, or single stroke
-        return "4"  # downgrade likely 'A' to '4' as a better match
+        return "A"
 
     if text in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]:
         return text
@@ -190,6 +189,8 @@ def main():
                             # Remove the previously added raw hand delta before applying phantom card logic
                             running_count -= delta
                             phantom_card_value = bj_total - hand_total
+                            if 'A' in hand_to_count and phantom_card_value == 3:
+                                print("🧐 POSSIBLE OCR SLIP: 'A' might actually be a 4 — review image manually")
 
                             # Map the difference to a likely card rank
                             if phantom_card_value == 10:
