@@ -179,7 +179,13 @@ def main():
                         except ValueError:
                             bj_total = None
 
+
                         hand_total = get_hand_total(hand_to_count)
+
+                        # ✅ Bust inference when bj_total is unreadable
+                        if bj_total is None and hand_total >= 22:
+                            print(f"🛡️ Inferring bust due to hand_total = {hand_total} (bj_total OCR failed)")
+                            bj_total = hand_total  # force phantom correction path
 
                         if bj_total is None and last_bj_total and 22 <= last_bj_total <= 26:
                             bj_total = last_bj_total
