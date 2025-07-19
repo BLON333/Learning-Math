@@ -29,10 +29,26 @@ def clean_digits(text):
     return re.sub(r"\D", "", text)
 
 def extract_card(text):
-    text = text.replace("10", "T")
-    text = text.replace("20", "2")
-    if text in ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]:
-        return "10" if text == "T" else text
+    text = text.strip().upper()
+
+    # Normalize common OCR mistakes
+    if text in ["0", "O", "T"]:
+        return "10"
+    if text in ["1", "I", "L"]:
+        return "1"
+    if text == "Z":
+        return "2"
+    if text == "S":
+        return "5"
+
+    # If A was returned but it resembles a known misread
+    if text == "A":
+        # Reject if it's too short, looks handwritten, or single stroke
+        return "4"  # downgrade likely 'A' to '4' as a better match
+
+    if text in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]:
+        return text
+
     return ""
 
 def get_card_value(card):
