@@ -37,6 +37,13 @@ def clean_text(text):
 def clean_digits(text):
     return re.sub(r"\D", "", text)
 
+def has_changed(prev_img, curr_img, threshold=25, min_change_pixels=50):
+    """Return True if the difference between images exceeds the threshold."""
+    diff = cv2.absdiff(prev_img, curr_img)
+    _, thresh = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)
+    changed_pixels = cv2.countNonZero(thresh)
+    return changed_pixels > min_change_pixels
+
 def extract_card(text):
     text = text.strip().upper()
 
@@ -104,6 +111,14 @@ def main():
     CLEAR_DELAY = 5.0  # seconds before confirmed clear
     a_visible_since = None
     last_a_hand = None
+    prev_card_regions = {
+        "card_1": None,
+        "card_2": None,
+        "card_3": None,
+        "card_4": None,
+        "card_5": None,
+        "bj_counter": None,
+    }
 
     try:
         while True:
@@ -115,31 +130,65 @@ def main():
             gray5 = grab_gray(card_5_region)
             bj_gray = grab_gray(bj_counter_region)
 
-            _, thresh1 = cv2.threshold(gray1, 160, 255, cv2.THRESH_BINARY)
-            _, thresh2 = cv2.threshold(gray2, 160, 255, cv2.THRESH_BINARY)
-            _, thresh3 = cv2.threshold(gray3, 160, 255, cv2.THRESH_BINARY)
-            _, thresh4 = cv2.threshold(gray4, 160, 255, cv2.THRESH_BINARY)
-            _, thresh5 = cv2.threshold(gray5, 160, 255, cv2.THRESH_BINARY)
-            _, bj_thresh = cv2.threshold(bj_gray, 160, 255, cv2.THRESH_BINARY)
+            if prev_card_regions["card_1"] is None or has_changed(prev_card_regions["card_1"], gray1):
+                print("🔄 Change detected in card_1 → triggering OCR")
+                _, thresh1 = cv2.threshold(gray1, 160, 255, cv2.THRESH_BINARY)
+                raw1 = pytesseract.image_to_string(thresh1, config='--psm 6')
+                c1 = extract_card(clean_text(raw1))
+                prev_card_regions["card_1"] = gray1
+            else:
+                c1 = ""
 
-            raw1 = pytesseract.image_to_string(thresh1, config='--psm 6')
-            raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
-            raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
-            raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
-            raw5 = pytesseract.image_to_string(thresh5, config='--psm 6')
+            if prev_card_regions["card_2"] is None or has_changed(prev_card_regions["card_2"], gray2):
+                print("🔄 Change detected in card_2 → triggering OCR")
+                _, thresh2 = cv2.threshold(gray2, 160, 255, cv2.THRESH_BINARY)
+                raw2 = pytesseract.image_to_string(thresh2, config='--psm 6')
+                c2 = extract_card(clean_text(raw2))
+                prev_card_regions["card_2"] = gray2
+            else:
+                c2 = ""
+
+            if prev_card_regions["card_3"] is None or has_changed(prev_card_regions["card_3"], gray3):
+                print("🔄 Change detected in card_3 → triggering OCR")
+                _, thresh3 = cv2.threshold(gray3, 160, 255, cv2.THRESH_BINARY)
+                raw3 = pytesseract.image_to_string(thresh3, config='--psm 6')
+                regular_c3 = extract_card(clean_text(raw3))
+                prev_card_regions["card_3"] = gray3
+            else:
+                regular_c3 = ""
+
+            if prev_card_regions["card_4"] is None or has_changed(prev_card_regions["card_4"], gray4):
+                print("🔄 Change detected in card_4 → triggering OCR")
+                _, thresh4 = cv2.threshold(gray4, 160, 255, cv2.THRESH_BINARY)
+                raw4 = pytesseract.image_to_string(thresh4, config='--psm 6')
+                c4 = extract_card(clean_text(raw4))
+                prev_card_regions["card_4"] = gray4
+            else:
+                c4 = ""
+
+            if prev_card_regions["card_5"] is None or has_changed(prev_card_regions["card_5"], gray5):
+                print("🔄 Change detected in card_5 → triggering OCR")
+                _, thresh5 = cv2.threshold(gray5, 160, 255, cv2.THRESH_BINARY)
+                raw5 = pytesseract.image_to_string(thresh5, config='--psm 6')
+                c5 = extract_card(clean_text(raw5))
+                prev_card_regions["card_5"] = gray5
+            else:
+                c5 = ""
+
+            if prev_card_regions["bj_counter"] is None or has_changed(prev_card_regions["bj_counter"], bj_gray):
+                print("🔄 Change detected in bj_counter → triggering OCR")
+                _, bj_thresh = cv2.threshold(bj_gray, 160, 255, cv2.THRESH_BINARY)
+                bj_raw = pytesseract.image_to_string(bj_thresh, config='--psm 6')
+                bj_counter = clean_digits(bj_raw)
+                prev_card_regions["bj_counter"] = bj_gray
+            else:
+                bj_counter = ""
+
             # === Double-Down Card Support ===
             double_gray = grab_gray(double_card_region)
             rotated = cv2.rotate(double_gray, cv2.ROTATE_90_CLOCKWISE)
             raw_double = pytesseract.image_to_string(rotated, config='--psm 6')
-            bj_raw = pytesseract.image_to_string(bj_thresh, config='--psm 6')
-
-            c1 = extract_card(clean_text(raw1))
-            c2 = extract_card(clean_text(raw2))
-            regular_c3 = extract_card(clean_text(raw3))
-            c4 = extract_card(clean_text(raw4))
-            c5 = extract_card(clean_text(raw5))
             double_card = extract_card(clean_text(raw_double))
-            bj_counter = clean_digits(bj_raw)
 
             third_card = double_card if double_card else regular_c3
 
