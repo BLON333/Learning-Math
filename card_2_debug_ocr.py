@@ -143,7 +143,7 @@ def main():
     # === Burst OCR Mode Settings ===
     burst_mode_active = False
     burst_mode_start = None
-    BURST_DURATION = 2.0  # seconds
+    BURST_DURATION = 4.0  # More time to capture final hits
     prev_card_regions = {
         "card_1": None,
         "card_2": None,
@@ -277,6 +277,9 @@ def main():
             cards = [c1, c2, third_card, c4, c5]
             hand = [c for c in cards if c]
 
+            if len(hand) >= 3 and get_hand_total(hand) < 18:
+                print(f"⚠️ Low-value hand with 3+ cards: {hand} → possible OCR miss")
+
             if len(hand) == 3 and not burst_mode_active:
                 burst_mode_active = True
                 burst_mode_start = time.time()
@@ -330,6 +333,27 @@ def main():
 
 
                         hand_total = get_hand_total(hand_to_count)
+
+                        # 🔁 Retry OCR from snapshot buffer if hand seems under-read
+                        if bj_total is None and len(hand_to_count) in [3, 4] and hand_total < 18:
+                            print(f"📦 Attempting to recover missed cards from buffer...")
+
+                            for card_key in ["card_3", "card_4", "card_5"]:
+                                if card_key not in roi_buffers:
+                                    continue
+                                for img in reversed(roi_buffers[card_key]):
+                                    raw = pytesseract.image_to_string(img, config='--psm 6')
+                                    cleaned = clean_text(raw)
+                                    extracted = extract_card(cleaned)
+                                    if not extracted:
+                                        match = match_template(img, card_templates)
+                                        if match:
+                                            extracted = match
+                                            print(f"🔁 Template matched {card_key} from buffer: {extracted}")
+                                    if extracted and extracted not in hand_to_count:
+                                        hand_to_count.append(extracted)
+                                        print(f"🧩 Added recovered card from buffer: {extracted}")
+                                        break  # only take one candidate per slot
 
                         # ✅ Bust inference when bj_total is unreadable
                         if bj_total is None and hand_total >= 22:
