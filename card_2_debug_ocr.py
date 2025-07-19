@@ -44,17 +44,28 @@ def get_card_value(card):
         return -1
     return 0
 
-def get_card_total_value(card):
-    """Return blackjack point value for a single card."""
-    if card == 'A':
-        return 11
-    elif card in ['K', 'Q', 'J', '10']:
-        return 10
-    else:
-        try:
-            return int(card)
-        except ValueError:
-            return 0
+def get_hand_total(cards):
+    """Return blackjack total with soft-to-hard Ace adjustment."""
+    total = 0
+    aces = 0
+
+    for c in cards:
+        if c == 'A':
+            total += 11
+            aces += 1
+        elif c in ['K', 'Q', 'J', '10']:
+            total += 10
+        else:
+            try:
+                total += int(c)
+            except ValueError:
+                pass
+
+    while total > 21 and aces > 0:
+        total -= 10
+        aces -= 1
+
+    return total
 
 def main():
     print("🔍 Card OCR with Round Summary... Press CTRL+C to stop.")
@@ -151,7 +162,7 @@ def main():
                         if bj_total is None and last_bj_total and 22 <= last_bj_total <= 26:
                             bj_total = last_bj_total
 
-                        hand_total = sum(get_card_total_value(c) for c in hand_to_count)
+                        hand_total = get_hand_total(hand_to_count)
 
                         if bj_total is not None and 22 <= bj_total <= 26 and bj_total - hand_total >= 2:
                             # Remove the previously added raw hand delta before applying phantom card logic
